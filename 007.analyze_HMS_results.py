@@ -16,18 +16,20 @@ except ImportError:
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-RUN_DIR = SCRIPT_DIR / "runs" / "HMS"
-ANALYSIS_DIR = SCRIPT_DIR / "analysis"
 
-SUMMARY_CSV = ANALYSIS_DIR / "HMS_analysis_summary.csv"
-ISLAND_CSV = ANALYSIS_DIR / "HMS_island_statistics.csv"
-MEMBER_CSV = ANALYSIS_DIR / "HMS_member_statistics.csv"
+RUN_DIR = SCRIPT_DIR
+ANALYSIS_DIR = SCRIPT_DIR
 
-RUNTIME_PLOT = ANALYSIS_DIR / "HMS_runtime_vs_cutoff.png"
-ISLAND_COUNT_PLOT = ANALYSIS_DIR / "HMS_island_count_vs_cutoff.png"
-CLUSTER_SIZE_PLOT = ANALYSIS_DIR / "HMS_cluster_size_vs_cutoff.png"
-SIMILARITY_PLOT = ANALYSIS_DIR / "HMS_similarity_vs_cutoff.png"
-CALCULATIONS_PLOT = ANALYSIS_DIR / "HMS_calculations_vs_cutoff.png"
+SUMMARY_CSV = SCRIPT_DIR / "HMS_analysis_summary.csv"
+ISLAND_CSV = SCRIPT_DIR / "HMS_island_statistics.csv"
+MEMBER_CSV = SCRIPT_DIR / "HMS_member_statistics.csv"
+
+RUNTIME_PLOT = SCRIPT_DIR / "HMS_runtime_vs_cutoff.png"
+ISLAND_COUNT_PLOT = SCRIPT_DIR / "HMS_island_count_vs_cutoff.png"
+CLUSTER_SIZE_PLOT = SCRIPT_DIR / "HMS_cluster_size_vs_cutoff.png"
+SIMILARITY_PLOT = SCRIPT_DIR / "HMS_similarity_vs_cutoff.png"
+CALCULATIONS_PLOT = SCRIPT_DIR / "HMS_calculations_vs_cutoff.png"
+
 
 
 def mean_or_nan(values):
@@ -73,40 +75,21 @@ def cutoff_label(cutoff):
 
 
 def find_output_files():
-    if not RUN_DIR.exists():
-        print(f"ERROR: HMS run directory does not exist:")
-        print(RUN_DIR)
-        sys.exit(1)
 
     output_files = []
 
-    for case_dir in sorted(RUN_DIR.iterdir()):
-        if not case_dir.is_dir():
+    for path in sorted(SCRIPT_DIR.glob("HMS_Island_*.out")):
+
+        if "summary" in path.name.lower():
             continue
 
-        candidates = sorted(case_dir.glob("HMS_Island_*.out"))
-
-        candidates = [
-            path for path in candidates
-            if "summary" not in path.name.lower()
-        ]
-
-        if not candidates:
+        if path.name.startswith("HMS_slurm_"):
             continue
 
-        preferred = None
-
-        for candidate in candidates:
-            if candidate.stem == case_dir.name:
-                preferred = candidate
-                break
-
-        if preferred is None:
-            preferred = candidates[0]
-
-        output_files.append(preferred)
+        output_files.append(path)
 
     return output_files
+
 
 
 def parse_hms_output(output_file):

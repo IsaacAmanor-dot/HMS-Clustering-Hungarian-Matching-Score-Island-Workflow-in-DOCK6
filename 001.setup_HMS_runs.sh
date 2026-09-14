@@ -5,18 +5,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/000.config.sh"
 
-echo
-echo "Preparing HMS Similarity Island calculations..."
-echo
-
 if [[ ! -x "${DOCK_BIN}" ]]; then
-    echo "ERROR: DOCK6 Similarity Island binary not found:"
+    echo "ERROR: DOCK binary not found:"
     echo "${DOCK_BIN}"
     exit 1
 fi
 
 if [[ ! -s "${LIGAND_ATOM_FILE}" ]]; then
-    echo "ERROR: Ligand MOL2 file not found:"
+    echo "ERROR: Ligand file not found:"
     echo "${LIGAND_ATOM_FILE}"
     exit 1
 fi
@@ -45,25 +41,15 @@ if [[ ! -s "${FLEX_DEFN_FILE}" ]]; then
     exit 1
 fi
 
-mkdir -p "${RUN_DIR}"
-mkdir -p "${STATE_DIR}"
-mkdir -p "${LOG_DIR}"
-
 GENERATED=0
 
 for CUTOFF in "${HMS_CUTOFFS[@]}"; do
 
     LABEL=$(cutoff_label "${CUTOFF}")
-
     CASE_NAME="HMS_Island_${LABEL}"
 
-    CASE_DIR="${RUN_DIR}/${CASE_NAME}"
-
-    INPUT_FILE="${CASE_DIR}/${CASE_NAME}.in"
-
-    SUMMARY_FILE="HMS_Island_summary_${LABEL}.out"
-
-    mkdir -p "${CASE_DIR}"
+    INPUT_FILE="${WORK_ROOT}/${CASE_NAME}.in"
+    SUMMARY_FILE="${CASE_NAME}_summary.out"
 
     cat > "${INPUT_FILE}" << EOF_INPUT
 conformer_search_type                                      analysis
@@ -109,15 +95,10 @@ flex_defn_file                                             ${FLEX_DEFN_FILE}
 ligand_outfile_prefix                                      ${CASE_NAME}
 EOF_INPUT
 
+    echo "Created ${CASE_NAME}.in"
+
     GENERATED=$((GENERATED + 1))
-
-    echo "Created:"
-    echo "${INPUT_FILE}"
-
 done
 
 echo
-echo "HMS input generation complete."
-echo "Calculations generated: ${GENERATED}"
-echo "Run directory:"
-echo "${RUN_DIR}"
+echo "Generated ${GENERATED} HMS input files."

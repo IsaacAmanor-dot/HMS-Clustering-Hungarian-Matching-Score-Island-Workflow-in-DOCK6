@@ -19,56 +19,44 @@ if [[ ! -s "${TASK_LIST}" ]]; then
 fi
 
 TASK_LINE=$(awk -F '\t' -v ID="${TASK_ID}" '
-    NR > 1 && $1 == ID {
-        print
-        exit
-    }
-' "${TASK_LIST}")
+NR > 1 && $1 == ID {
+    print
+    exit
+}' "${TASK_LIST}")
 
 if [[ -z "${TASK_LINE}" ]]; then
-    echo "ERROR: Task ${TASK_ID} was not found."
+    echo "ERROR: Task ${TASK_ID} not found."
     exit 1
 fi
 
-IFS=$'\t' read -r TASK_ID CUTOFF LABEL CASE_NAME CASE_DIR INPUT_FILE \
-    <<< "${TASK_LINE}"
+IFS=$'\t' read -r TASK_ID CUTOFF LABEL CASE_NAME INPUT_FILE <<< "${TASK_LINE}"
 
-OUTPUT_FILE="${CASE_DIR}/${CASE_NAME}.out"
+OUTPUT_FILE="${WORK_ROOT}/${CASE_NAME}.out"
+SUMMARY_FILE="${WORK_ROOT}/${CASE_NAME}_summary.out"
 
-SUMMARY_FILE="${CASE_DIR}/HMS_Island_summary_${LABEL}.out"
+SUCCESS_FILE="${WORK_ROOT}/.${CASE_NAME}.success"
+FAILED_FILE="${WORK_ROOT}/.${CASE_NAME}.failed"
 
-if [[ ! -d "${CASE_DIR}" ]]; then
-    echo "ERROR: Missing calculation directory:"
-    echo "${CASE_DIR}"
-    exit 1
-fi
+cd "${WORK_ROOT}" || exit 1
 
-if [[ ! -s "${INPUT_FILE}" ]]; then
-    echo "ERROR: Missing input file:"
-    echo "${INPUT_FILE}"
-    exit 1
-fi
+if [[ -f "${SUCCESS_FILE}" ]] \
+    && [[ -s "${OUTPUT_FILE}" ]] \
+    && [[ -s "${SUMMARY_FILE}" ]] \
+    && grep -q "Similarity Island clustering complete" "${OUTPUT_FILE}"; then
 
-cd "${CASE_DIR}" || exit 1
-
-if [[ -f .success ]] \
-    && [[ -s "${SUMMARY_FILE}" ]]; then
-
-    echo "Task ${TASK_ID} already completed."
-    echo "Cutoff: ${CUTOFF}"
+    echo "${CASE_NAME} already completed."
     exit 0
 fi
 
-rm -f .success .failed
+rm -f "${SUCCESS_FILE}" "${FAILED_FILE}"
 
 echo
-echo "HMS Similarity Island task"
+echo "HMS Similarity Island calculation"
 echo
 echo "Task ID: ${TASK_ID}"
 echo "Cutoff: ${CUTOFF}"
 echo "Case: ${CASE_NAME}"
 echo "Node: $(hostname)"
-echo "Directory: ${CASE_DIR}"
 echo "Input: ${INPUT_FILE}"
 echo "Output: ${OUTPUT_FILE}"
 echo
@@ -80,26 +68,24 @@ echo
 EXIT_CODE=$?
 
 if [[ "${EXIT_CODE}" -eq 0 ]] \
-    && [[ -s "${SUMMARY_FILE}" ]]; then
+    && [[ -s "${OUTPUT_FILE}" ]] \
+    && [[ -s "${SUMMARY_FILE}" ]] \
+    && grep -q "Similarity Island clustering complete" "${OUTPUT_FILE}"; then
 
-    touch .success
-    rm -f .failed
+    touch "${SUCCESS_FILE}"
+    rm -f "${FAILED_FILE}"
 
     echo
-    echo "Task ${TASK_ID} completed successfully."
-    echo "Cutoff: ${CUTOFF}"
-    echo "Summary:"
-    echo "${SUMMARY_FILE}"
+    echo "${CASE_NAME} completed successfully."
 
     exit 0
 fi
 
-touch .failed
-rm -f .success
+touch "${FAILED_FILE}"
+rm -f "${SUCCESS_FILE}"
 
 echo
-echo "Task ${TASK_ID} failed."
-echo "Cutoff: ${CUTOFF}"
+echo "${CASE_NAME} failed."
 echo "DOCK exit code: ${EXIT_CODE}"
 
 exit 1
